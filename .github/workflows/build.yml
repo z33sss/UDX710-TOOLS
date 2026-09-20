@@ -9,11 +9,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install base packages
         run: |
-          curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
           sudo apt-get update
-          sudo apt-get install -y nodejs file
+          sudo apt-get install -y file curl
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Cache cross compiler (aarch64)
         uses: actions/cache@v4
@@ -26,13 +30,16 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/tools
           if [ ! -d "$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu" ]; then
             cd $GITHUB_WORKSPACE/tools
-            # 南阳理工大学 Linaro 镜像
-            wget --no-verbose https://mirror.nyist.edu.cn/linaro-toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
-            if ! file gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz | grep -q "XZ compressed data"; then
+            # archive.org 永久存档地址
+            FILE="gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
+            URL="https://archive.org/download/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/$FILE"
+            # 最多重试3次
+            curl --retry 3 --retry-connrefused -L -o $FILE $URL
+            if ! file $FILE | grep -q "XZ compressed data"; then
               echo "ERROR: Downloaded file is not a valid tar.xz!"
               exit 1
             fi
-            tar -xJf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+            tar -xJf $FILE
           fi
           echo "PATH=$PATH:$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_ENV
 
