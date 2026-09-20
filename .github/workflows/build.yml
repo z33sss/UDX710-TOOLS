@@ -9,33 +9,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install dependencies & aarch64 cross gcc
         run: |
           curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
           sudo apt-get update
-          sudo apt-get install -y nodejs
-
-      - name: Cache cross compiler (aarch64)
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu
-          key: gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu
-
-      - name: Configure cross compiler (aarch64)
-        run: |
-          mkdir -p $GITHUB_WORKSPACE/tools
-          if [ ! -d "$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu" ]; then
-            cd $GITHUB_WORKSPACE/tools
-            # 使用ISCAS国内镜像替换失效linaro地址
-            wget -q https://mirror.iscas.ac.cn/linaro-toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
-            # 校验文件是否为xz压缩包，失败直接退出
-            if ! file gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz | grep -q "XZ compressed data"; then
-              echo "ERROR: Downloaded file is not a valid tar.xz!"
-              exit 1
-            fi
-            tar -xJf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
-          fi
-          echo "PATH=$PATH:$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_ENV
+          # 直接安装aarch64-linux-gnu-gcc7，原生ubuntu源，不需要下载linaro tar包
+          sudo apt-get install -y nodejs gcc-7-aarch64-linux-gnu g++-7-aarch64-linux-gnu file
 
       - name: build web
         run: |
@@ -45,6 +24,9 @@ jobs:
       - name: build server
         run: |
           cd src
+          # 确认交叉编译器可用
+          which aarch64-linux-gnu-gcc
+          aarch64-linux-gnu-gcc --version
           make
 
       - name: dopack
