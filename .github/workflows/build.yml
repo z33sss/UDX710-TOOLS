@@ -29,8 +29,7 @@ jobs:
           cd src
           export CROSS_COMPILE=aarch64-linux-gnu-
           make
-          mkdir -p build
-          cp ofono-server build/ofono-server
+          ls -la build/
 
       - name: dopack
         run: |
@@ -38,10 +37,10 @@ jobs:
           echo "#!/bin/sh" > start.sh
           echo "cd /home/root/6677" >> start.sh
           echo "chmod 755 *" >> start.sh
-          echo "./server &" >> start.sh
+          echo "./ofono-server &" >> start.sh
           mv start.sh output/6677/
           cp -r web/dist output/6677/
-          cp src/build/ofono-server output/6677/server
+          cp src/build/ofono-server output/6677/ofono-server
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
