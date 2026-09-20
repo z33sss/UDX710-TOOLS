@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 jobs:
   build-arm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -13,7 +13,7 @@ jobs:
         run: |
           curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
           sudo apt-get update
-          # 直接安装aarch64-linux-gnu-gcc7，原生ubuntu源，不需要下载linaro tar包
+          # Ubuntu22.04(jammy)源存在gcc7交叉编译器
           sudo apt-get install -y nodejs gcc-7-aarch64-linux-gnu g++-7-aarch64-linux-gnu file
 
       - name: build web
@@ -24,10 +24,11 @@ jobs:
       - name: build server
         run: |
           cd src
-          # 确认交叉编译器可用
-          which aarch64-linux-gnu-gcc
-          aarch64-linux-gnu-gcc --version
-          make
+          # 打印调试信息确认编译器
+          which aarch64-linux-gnu-gcc-7
+          aarch64-linux-gnu-gcc-7 --version
+          # 如果Makefile默认用aarch64-linux-gnu-gcc，需要指定CC
+          make CC=aarch64-linux-gnu-gcc-7 CXX=aarch64-linux-gnu-g++-7
 
       - name: dopack
         run: |
