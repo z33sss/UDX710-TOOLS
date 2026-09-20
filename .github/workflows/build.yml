@@ -9,51 +9,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install base packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y file curl
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Cache cross compiler (aarch64)
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu
-          key: gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu
-
-      - name: Configure cross compiler (aarch64)
-        run: |
-          mkdir -p $GITHUB_WORKSPACE/tools
-          if [ ! -d "$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu" ]; then
-            cd $GITHUB_WORKSPACE/tools
-            # archive.org 永久存档地址
-            FILE="gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
-            URL="https://archive.org/download/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/$FILE"
-            # 最多重试3次
-            curl --retry 3 --retry-connrefused -L -o $FILE $URL
-            if ! file $FILE | grep -q "XZ compressed data"; then
-              echo "ERROR: Downloaded file is not a valid tar.xz!"
-              exit 1
-            fi
-            tar -xJf $FILE
-          fi
-          echo "PATH=$PATH:$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_ENV
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: build web
         run: |
           cd web
           npm install && npm run build
 
-      - name: build server
+      - name: build server (C, aarch64 cross compile inside docker)
         run: |
-          cd src
-          which aarch64-linux-gnu-gcc
-          aarch64-linux-gnu-gcc --version
-          make
+          docker run --rm -v $GITHUB_WORKSPACE:/work -w /work/src tonistiigi/xx:golang \
+            sh -c "xx-apk add gcc aarch64-linux-gnu-gcc && \
+            export CROSS_COMPILE=aarch64-linux-gnu- && \
+            make && mkdir -p build && cp ofono-server build/"
 
       - name: dopack
         run: |
