@@ -14,20 +14,23 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Install dependencies & aarch64 cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu build-essential
 
       - name: build web
         run: |
           cd web
           npm install && npm run build
 
-      - name: build server (C, aarch64 cross compile inside docker)
+      - name: build server (C code, aarch64)
         run: |
-          docker run --rm -v $GITHUB_WORKSPACE:/work -w /work/src tonistiigi/xx:golang \
-            sh -c "xx-apk add gcc aarch64-linux-gnu-gcc && \
-            export CROSS_COMPILE=aarch64-linux-gnu- && \
-            make && mkdir -p build && cp ofono-server build/"
+          cd src
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          make
+          mkdir -p build
+          cp ofono-server build/ofono-server
 
       - name: dopack
         run: |
