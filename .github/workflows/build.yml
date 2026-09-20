@@ -1,13 +1,10 @@
 name: Build UDX710 Tools
-
 on:
   push:
   workflow_dispatch:
-
 jobs:
   build-arm:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,8 +25,15 @@ jobs:
         run: |
           mkdir -p $GITHUB_WORKSPACE/tools
           if [ ! -d "$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu" ]; then
-            wget https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
-            tar xf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz -C $GITHUB_WORKSPACE/tools
+            cd $GITHUB_WORKSPACE/tools
+            # 使用ISCAS国内镜像替换失效linaro地址
+            wget -q https://mirror.iscas.ac.cn/linaro-toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+            # 校验文件是否为xz压缩包，失败直接退出
+            if ! file gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz | grep -q "XZ compressed data"; then
+              echo "ERROR: Downloaded file is not a valid tar.xz!"
+              exit 1
+            fi
+            tar -xJf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
           fi
           echo "PATH=$PATH:$GITHUB_WORKSPACE/tools/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_ENV
 
@@ -59,4 +63,3 @@ jobs:
         with:
           name: udx710-tools
           path: output
-
